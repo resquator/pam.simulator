@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title>PAM Portfolio Simulator 2022</title>
+    <style>
+        body {background-color: lightgrey;}
+        h1   {color: blue;}
+        p    {color: blue;}
+        .naija-flag {
+            display: flex;
+          }
+          .isin-selector {
+            height: 300px;
+            width: 600px;
+            background-color: white;
+            border-style: solid;
+          }
+          .portfolio-seeting {
+            height: 300;
+            width: 250px;
+            background-color: lightgrey;
+            border-style: solid;            
+          }
+          .sampling-setting {
+            height: 300px;
+            width: 300px;
+            background-color: lightgrey;
+            border-style: solid;
+          }
+    </style>
+        
+  </head>
+  <body>
+    <h1>PAM Portfolio Simulator 2022</h1>
+    <p>This page simulates a portfolio simulator in a closed architecture. The calculation is made with a Python library (ffn).</p>
+    <form action = "{{url_for('predict')}}" method="post">
+    <div class="naija-flag">
+        <div class="isin-selector">
+            <h3>Portfolio Selection</h3>
+                <table>
+                  <tr>
+                    <td><input type="checkbox" id="isin01" name="isin01" value="LU2017473682">
+                    <label for="isin01"> Pictet TR-Sirius-HE EUR</label></td>
+                    <td><input type="range" min="1" max="100" value="0" id="w01" name="w01">
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><input type="checkbox" id="isin02" name="isin02" value="LU0340554673">
+                    <label for="isin02"> Pictet-Digital Comm-I EUR</label></td>
+                    <td><input type="range" min="1" max="100" value="0" id="w02" name="w02"></td>
+                  </tr>
+                  <tr>
+                    <td><input type="checkbox" id="isin03" name="isin03" value="LU0474966677">
+                    <label for="isin03"> Pictet-Japan Index-I EUR</label></td>
+                    <td><input type="range" min="1" max="100" value="0" id="w03" name="w03"></td>
+                  </tr>
+                  <tr>
+                    <td><input type="checkbox" id="isin04" name="isin04" value="LU0303494743">
+                    <label for="isin04"> Pictet-World Gvt Bonds-I EUR</label></td>
+                    <td><input type="range" min="1" max="100" value="0" id="w04" name="w04"></td>
+                  </tr>
+                  <tr>
+                    <td><input type="checkbox" id="isin05" name="isin05" value="LU0386875149">
+                    <label for="isin05"> Pictet-Glo Megatrend Sel-I EUR</label></td>
+                    <td><input type="range" min="1" max="100" value="0" id="w05" name="w05"></td>
+                  </tr>
+
+                </table>
+                
+        </div>
+        <div class="portfolio-seeting">
+            <h3>Portfolio Parameters</h3>
+            <fieldset>
+                <legend>Select Portolio Settings:</legend>
+            
+                <div>
+                  <input type="checkbox" id="redistribution" name="redistribution">
+                  <label for="redistribution">Redistribution</label>
+                </div>
+            
+                <div>
+                  <input type="checkbox" id="rebalanced" name="rebalanced">
+                  <label for="rebalanced">Rebalanced</label>
+                </div>
+            </fieldset>
+        </div>
+        <div class="sampling-setting">
+            <h3>Period Selection</h3>
+            <fieldset>
+                <legend>Simulation Timeframe:</legend>
+            <div>
+                <input type="radio" name="sampling" value="sampling-all">Maximum period<br>
+                <input type="radio" name="sampling" value="">From <input type="date" name="from_date" value="2022-01-01" /> to now.
+            </div>
+            </fieldset>
+
+        </div>
+    </div>
+    <br>
+    <button type="submit">Predict</button>
+  </form>
+
+    <h2>Simulation</h2>
+
+                <div class ="pred">
+                    <p><b>{{ prediction_text | safe }}</b></p>
+                </div>
+
+  </body>
+</html>
