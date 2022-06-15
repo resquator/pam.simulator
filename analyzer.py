@@ -22,3 +22,40 @@ class Isin:
         last_nav = self.nav.tail(1)['NAV']
         #return last_nav / first_nav
         return (np.array(last_nav)[0] / np.array(first_nav)[0] - 1)* 100
+
+class Portfolio:
+    def __init__(self, listisin, since):
+        self.isins = listisin
+        self.since = since
+
+    def create_series(self):
+        isins = self.isins
+        df = pd.read_csv('data/simulator-database.csv', delimiter=';')
+        df.drop_duplicates(inplace=True)
+        df['NAV_DATE']=pd.to_datetime(df['PRICING_DATE'], format='%d.%m.%Y')
+        #iterate through isin and collect nav and merge ina blank dataframe
+        isin = self.isins[0]
+        nav = df.query('ISIN_CODE == @isin')[['NAV_DATE','NAV']].copy()
+        if len(isins) > 1:
+            for i in range(1,len(isins)):
+                isin = isins[i]
+                temp = df.query('ISIN_CODE == @isin')[['NAV_DATE','NAV']].copy()
+                nav = nav.merge(temp, left_on='NAV_DATE', right_on='NAV_DATE')
+        nav = nav.drop_duplicates()
+        cols = ['NAV_DATE']
+        for isin in isins:
+            cols.append(isin)
+        nav.columns = cols
+        since = self.since
+        return nav.query('NAV_DATE >= @since').sort_values('NAV_DATE')
+
+
+
+
+
+
+
+
+
+
+
