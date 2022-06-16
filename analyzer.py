@@ -42,12 +42,12 @@ class Portfolio:
                 temp = df.query('ISIN_CODE == @isin')[['NAV_DATE','NAV']].copy()
                 nav = nav.merge(temp, left_on='NAV_DATE', right_on='NAV_DATE')
         nav = nav.drop_duplicates()
-        cols = ['NAV_DATE']
+        cols = ['index']
         for isin in isins:
             cols.append(isin)
         nav.columns = cols
         since = self.since
-        return nav.query('NAV_DATE >= @since').sort_values('NAV_DATE')
+        return nav.query('index >= @since').sort_values('index')
 
 
 
