@@ -113,10 +113,21 @@ def predict():
         plt.savefig(f'static/perfor_{str_date_time}.png', bbox_inches='tight')
 
         html = f'<div class="naija-flag"><h5 />Portfolio Allocation since {since_when}:{table}<br>The {investment} Euro invested returns {gl} Euro. This means a {np.round(((gl/investment)-1)*100,2)}% performance.<br><div><table><tr /><td /><img src="/static/heatmap_{str_date_time}.png"><td /><img src="/static/rethisto_{str_date_time}.png"></table></div><div><table valign="top"><tr /><td />{a}<td /><img src="/static/perfor_{str_date_time}.png"></table></div></div>'
-    except:
-        html = 'No answer'
-    
-    return render_template('home.html', prediction_text = html)
+        return render_template('home.html', prediction_text = html)
+
+    except OSError as err:
+        print("OS error: {0}".format(err))
+        return render_template('home.html', prediction_text = f'Error {err}')
+
+    except ValueError:
+        print("Could not convert data to an integer.")
+        return render_template('home.html', prediction_text = f'Error dtypes')
+
+    except BaseException as err:
+        print(f"Unexpected {err=}, {type(err)=}")
+        return render_template('home.html', prediction_text = f'Error {err}')
+
+        raise    
 
 if __name__ == "__main__":
     app.run(debug=True)
