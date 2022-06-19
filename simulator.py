@@ -46,12 +46,13 @@ def predict():
 
     ptf = pd.DataFrame(isins, columns=['ISIN','WEIGHT','PERF','SINCE'], index=None)
     b100 = ptf.WEIGHT.sum()
-    
+    weights = []
     for idx, r in ptf.iterrows():
         invest = r.WEIGHT / b100 * investment
         ptf.loc[idx,'WEIGHT'] = r.WEIGHT / b100 #int(r.WEIGHT / b100)
         ptf.loc[idx,'INVEST'] = invest
         ptf.loc[idx,'RETURN'] = (invest* (1 + (r.PERF/100))) - invest
+        weights.append(r.WEIGHT / b100)
 
     
     table = ptf.to_html(index=False, justify='center')
@@ -119,9 +120,39 @@ def predict():
         Returns:
             _type_: _description_
         """
-        ptf = pf.create_portfolio(prices)
+        print(f'Entering in create_portfolio method since {since_when}')
+        returns = prices.to_returns()
+        # portfolios weights
+        returns_1 = returns + 1
+        first_index = returns_1.index[0]
+        returns_1.loc[first_index,'p1']=weights[0]
+        returns_1.loc[first_index,'p2']=weights[1]
+        returns_1.loc[first_index,'p3']=weights[2]
+        
+        last_row = returns_1.shape[0]
+        for i in range(1,last_row):
+            returns_1.iloc[i,3] = returns_1.iloc[i-1,3] * returns_1.iloc[i,0]
+            returns_1.iloc[i,4] = returns_1.iloc[i-1,4] * returns_1.iloc[i,1]
+            returns_1.iloc[i,5] = returns_1.iloc[i-1,5] * returns_1.iloc[i,2]
+        print(f'returns_1 shape = {returns_1.shape}')
+        print(returns_1.head(4))
+        returns_1['p']=returns_1['p1']+returns_1['p3']+returns_1['p2']    
+        portfolio = returns_1['p']
+        file_base100 = f'portfolios/ptf_sim_{str_date_time}.csv'
+        pd.DataFrame(portfolio).to_csv(file_base100)
+        
+        isins = ['p']
+        filename = file_base100
+        ptf_prices = ffn.get(f'{isins[0]}', provider=ffn.data.csv, path=filename)
+        ptf_stats = ptf_prices.calc_stats()
+        ptf_stats.to_csv(sep=',',path=f'analysis/sim_{str_date_time}.csv')
+        analysis = pd.read_csv(f'analysis/sim_{str_date_time}.csv', delimiter=',', error_bad_lines=False)
+        a_sim = analysis.to_html()
+        
+        
 
-        html = f'<div class="naija-flag"><h5 />Portfolio Allocation since {since_when}:{table}<br>The {investment} Euro invested returns {gl} Euro. This means a {np.round(((gl/investment)-1)*100,2)}% performance.<br><div><table><tr /><td /><img src="/static/heatmap_{str_date_time}.png"><td /><img src="/static/rethisto_{str_date_time}.png"></table></div><div><table valign="top"><tr /><td />{a}<td /><img src="/static/perfor_{str_date_time}.png"></table></div></div>'
+
+        html = f'<div class="naija-flag"><h5 />Portfolio Allocation since {since_when}:<br><br>The {investment} Euro invested returns {gl} Euro. This means a {np.round(((gl/investment)-1)*100,2)}% performance.<hr>{table}<hr>{a_sim}<br><div><table><tr /><td /><img src="/static/heatmap_{str_date_time}.png"><td /><img src="/static/rethisto_{str_date_time}.png"></table></div><div><table valign="top"><tr /><td />{a}<td /><img src="/static/perfor_{str_date_time}.png"></table></div></div>'
         return render_template('home.html', prediction_text = html)
 
     except OSError as err:

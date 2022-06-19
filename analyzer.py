@@ -51,10 +51,10 @@ class Portfolio:
         since = self.since
         return nav.query('index >= @since').sort_values('index')
     
-    def create_portfolio(self, prices=None):
+    def create_portfolio(self, prices):
         if prices == None:
             return False
-        
+        print(f'Get prices and computes returns. prices.shape {prices.shape}')
         returns = prices.to_returns()
         
         return returns
