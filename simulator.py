@@ -111,6 +111,15 @@ def predict():
         # plot perf
         prices.rebase().plot(figsize=(12,5))
         plt.savefig(f'static/perfor_{str_date_time}.png', bbox_inches='tight')
+        
+        
+        """
+        This section creates a based 100 series on the portfolio position respecting weights
+
+        Returns:
+            _type_: _description_
+        """
+        ptf = pf.create_portfolio(prices)
 
         html = f'<div class="naija-flag"><h5 />Portfolio Allocation since {since_when}:{table}<br>The {investment} Euro invested returns {gl} Euro. This means a {np.round(((gl/investment)-1)*100,2)}% performance.<br><div><table><tr /><td /><img src="/static/heatmap_{str_date_time}.png"><td /><img src="/static/rethisto_{str_date_time}.png"></table></div><div><table valign="top"><tr /><td />{a}<td /><img src="/static/perfor_{str_date_time}.png"></table></div></div>'
         return render_template('home.html', prediction_text = html)

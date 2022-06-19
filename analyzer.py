@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np
+import ffn
+
 
 class Isin:
     def __init__(self, isin_code, since=None):
@@ -48,6 +50,14 @@ class Portfolio:
         nav.columns = cols
         since = self.since
         return nav.query('index >= @since').sort_values('index')
+    
+    def create_portfolio(self, prices=None):
+        if prices == None:
+            return False
+        
+        returns = prices.to_returns()
+        
+        return returns
 
 
 
