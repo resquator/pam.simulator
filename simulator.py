@@ -55,7 +55,7 @@ def predict():
         ptf.loc[idx,'RETURN'] = (invest* (1 + (r.PERF/100))) - invest
         weights.append(r.WEIGHT / b100)
 
-    
+    print(b100)
     table = ptf.to_html(index=False, justify='center', bold_rows=False, col_space=100)
 
     fund = Isin(isins[0],since=since_when)
@@ -87,16 +87,22 @@ def predict():
 
 
     filename = f'portfolios/ptf_{str_date_time}.csv'
+    print(filename)
     try:
-        prices = ffn.get(f'{listisins[0]},{listisins[1]},{listisins[2]}', provider=ffn.data.csv, path=filename)
-
+        # compute the files header for the file
+        file_isin_header = ','.join(listisins)
+        #prices = ffn.get(f'{listisins[0]},{listisins[1]},{listisins[2]}', provider=ffn.data.csv, path=filename)
+        prices = ffn.get(f'{file_isin_header}', provider=ffn.data.csv, path=filename)
+        print(f'{prices.shape}')
         stats = prices.calc_stats()
+        print('stats computed')
         stats.to_csv(sep=',',path=f'analysis/stats_{str_date_time}.csv')
         p = prices.to_html()
+        print('prices to html')
         analysis = pd.read_csv(f'analysis/stats_{str_date_time}.csv', delimiter=',', error_bad_lines=False)
         a = analysis.to_html(bold_rows=False, justify='center', col_space=100)
         gl = np.round(investment + (ptf.RETURN.sum()),2)
-
+        print(f'gl = {gl}')
         # max draw down
         stats.prices.to_drawdown_series().plot(figsize=(12,5))
         plt.savefig(f'static/drwadown_{str_date_time}.png', bbox_inches='tight')
@@ -126,21 +132,45 @@ def predict():
         # portfolios weights
         returns_1 = returns + 1
         first_index = returns_1.index[0]
-        returns_1.loc[first_index,'p1']=weights[0]
-        returns_1.loc[first_index,'p2']=weights[1]
-        returns_1.loc[first_index,'p3']=weights[2]
-        
+
+        #returns_1.loc[first_index,'p1']=weights[0]
+        #returns_1.loc[first_index,'p2']=weights[1]
+        #returns_1.loc[first_index,'p3']=weights[2]
+
+        for i in range(0,len(weights)):
+            v = f'p{i+1}'
+            returns_1.loc[first_index,v]=weights[i]
+
+
         print(f'From {returns_1.index.min()} To {returns_1.index.max()}')
         interval = f'From {returns_1.index.min().strftime("%d %B, %Y")} To {returns_1.index.max().strftime("%d %B, %Y")}'
 
         last_row = returns_1.shape[0]
+        """
         for i in range(1,last_row):
             returns_1.iloc[i,3] = returns_1.iloc[i-1,3] * returns_1.iloc[i,0]
             returns_1.iloc[i,4] = returns_1.iloc[i-1,4] * returns_1.iloc[i,1]
             returns_1.iloc[i,5] = returns_1.iloc[i-1,5] * returns_1.iloc[i,2]
+        """
+        print('dynamic size of portfolios')
+        for i in range(1,last_row):
+            l = len(listisins)
+            for j in range(0,l):
+                returns_1.iloc[i,l+j] = returns_1.iloc[i-1,l+j] * returns_1.iloc[i,j]
+
+
         print(f'returns_1 shape = {returns_1.shape}')
         print(returns_1.head(4))
-        returns_1['p']=returns_1['p1']+returns_1['p3']+returns_1['p2']    
+        
+        def compute_base100(row):
+            p=0
+            for i in range(0,len(listisins)):
+                p=p+row[f'p{i+1}']
+            return p
+
+        #returns_1['p']=returns_1['p1']+returns_1['p3']+returns_1['p2']    
+        returns_1['p'] = returns_1.apply (lambda row: compute_base100(row), axis=1)
+
         portfolio = returns_1['p']
         file_base100 = f'portfolios/ptf_sim_{str_date_time}.csv'
         pd.DataFrame(portfolio).to_csv(file_base100)
@@ -161,7 +191,7 @@ def predict():
         pd_cols=pd_cols.merge(analysis, left_on='labels', right_on='Stat', how='left').fillna('-')
         a_sim_summary = pd_cols[['labels','p']].to_html(index=False, col_space=100, justify='center')
 
-        html = f'<div class="naija-flag"><h3>Portfolio Allocation since {interval}</h3></div><br>The {investment} Euro invested returns {gl} Euro. This means a {np.round(((gl/investment)-1)*100,2)}% performance.<hr>{table}<hr>{a_sim_summary}<hr>{a_sim}<br><div><table><tr /><td /><h2>Portfolio details</h2><img src="/static/heatmap_{str_date_time}.png"><td /><img src="/static/rethisto_{str_date_time}.png"></table></div><div><table valign="top"><tr /><td />{a}<td /><img src="/static/perfor_{str_date_time}.png"></table></div></div>'
+        html = f'<div class="naija-flag"><h3>Portfolio simulation {interval}</h3></div><br>The {investment} Euro invested returns {gl} Euro. This means a {np.round(((gl/investment)-1)*100,2)}% performance.<hr>{table}<hr>{a_sim_summary}<hr>{a_sim}<br><div><table><tr /><td /><h2>Portfolio details</h2><img src="/static/heatmap_{str_date_time}.png"><td /><img src="/static/rethisto_{str_date_time}.png"></table></div><div><table valign="top"><tr /><td />{a}<td /><img src="/static/perfor_{str_date_time}.png"></table></div></div>'
         return render_template('home.html', prediction_text = html)
 
     except OSError as err:
