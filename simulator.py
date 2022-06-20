@@ -186,10 +186,13 @@ def predict():
         
         # force the columns we wants for the table
         cols_table = ['YTD','MTD','1m','3m','6m','1Y','Total Return']
-        pd_cols = pd.DataFrame(cols_table, columns=['labels'])
+        cols_greek = ['Daily Sharpe','Daily Vol (ann.)','Max Drawdown']
+        pd_cols = pd.DataFrame(cols_table + cols_greek, columns=['labels'])
         print(analysis.head(5))
         pd_cols=pd_cols.merge(analysis, left_on='labels', right_on='Stat', how='left').fillna('-')
         a_sim_summary = pd_cols[['labels','p']].to_html(index=False, col_space=100, justify='center')
+
+        
 
         html = f'<div class="naija-flag"><h3>Portfolio simulation {interval}</h3></div><br>The {investment} Euro invested returns {gl} Euro. This means a {np.round(((gl/investment)-1)*100,2)}% performance.<hr>{table}<hr>{a_sim_summary}<hr>{a_sim}<br><div><table><tr /><td /><h2>Portfolio details</h2><img src="/static/heatmap_{str_date_time}.png"><td /><img src="/static/rethisto_{str_date_time}.png"></table></div><div><table valign="top"><tr /><td />{a}<td /><img src="/static/perfor_{str_date_time}.png"></table></div></div>'
         return render_template('home.html', prediction_text = html)
