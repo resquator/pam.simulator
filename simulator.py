@@ -8,9 +8,10 @@ import matplotlib.pyplot as plt
 
 from analyzer import Isin
 from analyzer import Portfolio
-
+import shutil
 import ffn
-
+import os
+import glob
 
 
 app = Flask(__name__, template_folder = 'templates')
@@ -19,6 +20,8 @@ app = Flask(__name__, template_folder = 'templates')
 
 @app.route("/")
 def home():
+
+
     return render_template("home.html")
 
 @app.route('/', methods = ['POST'])
@@ -142,7 +145,7 @@ def predict():
             returns_1.loc[first_index,v]=weights[i]
 
 
-        print(f'From {returns_1.index.min()} To {returns_1.index.max()}')
+        #print(f'From {returns_1.index.min()} To {returns_1.index.max()}')
         interval = f'From {returns_1.index.min().strftime("%d %B, %Y")} To {returns_1.index.max().strftime("%d %B, %Y")}'
 
         last_row = returns_1.shape[0]
@@ -152,15 +155,15 @@ def predict():
             returns_1.iloc[i,4] = returns_1.iloc[i-1,4] * returns_1.iloc[i,1]
             returns_1.iloc[i,5] = returns_1.iloc[i-1,5] * returns_1.iloc[i,2]
         """
-        print('dynamic size of portfolios')
+        #print('dynamic size of portfolios')
         for i in range(1,last_row):
             l = len(listisins)
             for j in range(0,l):
                 returns_1.iloc[i,l+j] = returns_1.iloc[i-1,l+j] * returns_1.iloc[i,j]
 
 
-        print(f'returns_1 shape = {returns_1.shape}')
-        print(returns_1.head(4))
+        #print(f'returns_1 shape = {returns_1.shape}')
+        #print(returns_1.head(4))
         
         def compute_base100(row):
             p=0
@@ -178,6 +181,11 @@ def predict():
         isins = ['p']
         filename = file_base100
         ptf_prices = ffn.get(f'{isins[0]}', provider=ffn.data.csv, path=filename)
+        
+        #resample on weekly basis
+        ptf_prices = ptf_prices.resample('D').interpolate()[::7]
+        print(f'weekly prices resample {ptf_prices.shape}')
+        
         ptf_stats = ptf_prices.calc_stats()
         ptf_stats.to_csv(sep=',',path=f'analysis/sim_{str_date_time}.csv')
         analysis = pd.read_csv(f'analysis/sim_{str_date_time}.csv', delimiter=',', error_bad_lines=False)
@@ -192,9 +200,12 @@ def predict():
         pd_cols=pd_cols.merge(analysis, left_on='labels', right_on='Stat', how='left').fillna('-')
         a_sim_summary = pd_cols[['labels','p']].to_html(index=False, col_space=100, justify='center')
 
+        # plot perf_port
+        ptf_prices.rebase().plot(figsize=(12,5))
+        plt.savefig(f'static/perfor_ptf_{str_date_time}.png', bbox_inches='tight')
         
 
-        html = f'<div class="naija-flag"><h3>Portfolio simulation {interval}</h3></div><br>The {investment} Euro invested returns {gl} Euro. This means a {np.round(((gl/investment)-1)*100,2)}% performance.<hr>{table}<hr>{a_sim_summary}<hr>{a_sim}<br><div><table><tr /><td /><h2>Portfolio details</h2><img src="/static/heatmap_{str_date_time}.png"><td /><img src="/static/rethisto_{str_date_time}.png"></table></div><div><table valign="top"><tr /><td />{a}<td /><img src="/static/perfor_{str_date_time}.png"></table></div></div>'
+        html = f'<div class="naija-flag"><h3>Portfolio simulation {interval}</h3></div><br>The {investment} Euro invested returns {gl} Euro. This means a {np.round(((gl/investment)-1)*100,2)}% performance.<hr>{table}<hr>{a_sim_summary}<hr><img src="/static/perfor_ptf_{str_date_time}.png"><hr>{a_sim}<br><div><table><tr /><td /><h2>Portfolio details</h2><img src="/static/heatmap_{str_date_time}.png"><td /><img src="/static/rethisto_{str_date_time}.png"></table></div><div><table valign="top"><tr /><td />{a}<td /><img src="/static/perfor_{str_date_time}.png"></table></div></div>'
         return render_template('home.html', prediction_text = html)
 
     except OSError as err:
