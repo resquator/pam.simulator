@@ -1,0 +1,55 @@
+Stat,p
+Start,2019-06-21
+End,2022-06-13
+Risk-free rate,0.00%
+,,,,,
+Total Return,13.25%
+Daily Sharpe,0.37
+Daily Sortino,0.58
+CAGR,4.27%
+Max Drawdown,-26.97%
+Calmar Ratio,0.16
+,,,,,
+MTD,-4.02%
+3m,-5.27%
+6m,-17.14%
+YTD,-17.28%
+1Y,-14.09%
+3Y (ann.),4.27%
+5Y (ann.),-
+10Y (ann.),-
+Since Incep. (ann.),4.27%
+,,,,,
+Daily Sharpe,0.37
+Daily Sortino,0.58
+Daily Mean (ann.),5.87%
+Daily Vol (ann.),16.01%
+Daily Skew,-0.28
+Daily Kurt,3.00
+Best Day,4.75%
+Worst Day,-4.41%
+,,,,,
+Monthly Sharpe,0.39
+Monthly Sortino,0.66
+Monthly Mean (ann.),5.23%
+Monthly Vol (ann.),13.54%
+Monthly Skew,-0.13
+Monthly Kurt,0.96
+Best Month,9.99%
+Worst Month,-8.56%
+,,,,,
+Yearly Sharpe,0.11
+Yearly Sortino,0.18
+Yearly Mean,1.76%
+Yearly Vol,16.51%
+Yearly Skew,-1.72
+Yearly Kurt,-
+Best Year,11.96%
+Worst Year,-17.28%
+,,,,,
+Avg. Drawdown,-2.89%
+Avg. Drawdown Days,28.64
+Avg. Up Month,2.90%
+Avg. Down Month,-3.01%
+Win Year %,66.67%
+Win 12m %,80.77%

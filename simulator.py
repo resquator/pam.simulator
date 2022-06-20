@@ -28,11 +28,12 @@ def predict():
 
     since_when = request.form.get("from_date")
     investment = request.form.get('amount')
-    investment = 100000
+    print(f'investment is {investment} - {type(investment)}')
+    investment = int(investment)
     # iterate through isin01 to isin05 to get portfolio details
     isins= []   
     listisins = [] 
-    for i in range(1,6):
+    for i in range(1,8):
         v=f'isin0{i}'
         w=f'w0{i}'        
         fund = request.form.get(v)
@@ -55,7 +56,7 @@ def predict():
         weights.append(r.WEIGHT / b100)
 
     
-    table = ptf.to_html(index=False, justify='center')
+    table = ptf.to_html(index=False, justify='center', bold_rows=False, col_space=100)
 
     fund = Isin(isins[0],since=since_when)
     navs = fund.get_navs()
@@ -93,7 +94,7 @@ def predict():
         stats.to_csv(sep=',',path=f'analysis/stats_{str_date_time}.csv')
         p = prices.to_html()
         analysis = pd.read_csv(f'analysis/stats_{str_date_time}.csv', delimiter=',', error_bad_lines=False)
-        a = analysis.to_html()
+        a = analysis.to_html(bold_rows=False, justify='center', col_space=100)
         gl = np.round(investment + (ptf.RETURN.sum()),2)
 
         # max draw down
@@ -129,6 +130,9 @@ def predict():
         returns_1.loc[first_index,'p2']=weights[1]
         returns_1.loc[first_index,'p3']=weights[2]
         
+        print(f'From {returns_1.index.min()} To {returns_1.index.max()}')
+        interval = f'From {returns_1.index.min().strftime("%d %B, %Y")} To {returns_1.index.max().strftime("%d %B, %Y")}'
+
         last_row = returns_1.shape[0]
         for i in range(1,last_row):
             returns_1.iloc[i,3] = returns_1.iloc[i-1,3] * returns_1.iloc[i,0]
@@ -147,12 +151,17 @@ def predict():
         ptf_stats = ptf_prices.calc_stats()
         ptf_stats.to_csv(sep=',',path=f'analysis/sim_{str_date_time}.csv')
         analysis = pd.read_csv(f'analysis/sim_{str_date_time}.csv', delimiter=',', error_bad_lines=False)
+        print(f'{analysis.columns.tolist()}')
         a_sim = analysis.to_html()
         
-        
+        # force the columns we wants for the table
+        cols_table = ['YTD','MTD','1m','3m','6m','1Y','Total Return']
+        pd_cols = pd.DataFrame(cols_table, columns=['labels'])
+        print(analysis.head(5))
+        pd_cols=pd_cols.merge(analysis, left_on='labels', right_on='Stat', how='left').fillna('-')
+        a_sim_summary = pd_cols[['labels','p']].to_html(index=False, col_space=100, justify='center')
 
-
-        html = f'<div class="naija-flag"><h5 />Portfolio Allocation since {since_when}:<br><br>The {investment} Euro invested returns {gl} Euro. This means a {np.round(((gl/investment)-1)*100,2)}% performance.<hr>{table}<hr>{a_sim}<br><div><table><tr /><td /><img src="/static/heatmap_{str_date_time}.png"><td /><img src="/static/rethisto_{str_date_time}.png"></table></div><div><table valign="top"><tr /><td />{a}<td /><img src="/static/perfor_{str_date_time}.png"></table></div></div>'
+        html = f'<div class="naija-flag"><h3>Portfolio Allocation since {interval}</h3></div><br>The {investment} Euro invested returns {gl} Euro. This means a {np.round(((gl/investment)-1)*100,2)}% performance.<hr>{table}<hr>{a_sim_summary}<hr>{a_sim}<br><div><table><tr /><td /><h2>Portfolio details</h2><img src="/static/heatmap_{str_date_time}.png"><td /><img src="/static/rethisto_{str_date_time}.png"></table></div><div><table valign="top"><tr /><td />{a}<td /><img src="/static/perfor_{str_date_time}.png"></table></div></div>'
         return render_template('home.html', prediction_text = html)
 
     except OSError as err:
