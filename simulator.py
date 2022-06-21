@@ -1,5 +1,6 @@
 from fileinput import filename
 from flask import Flask, render_template, request
+from decimal import Decimal
 from matplotlib.cbook import print_cycles
 import numpy as np
 import pandas as pd
@@ -68,7 +69,7 @@ def predict():
     since = request.form.get('from_date')
     pf = Portfolio(listisins, since)
     s = pf.create_series()
-    s_html = s.to_html(index=True)
+    s_html = s.to_html(index=False).replace('<td>', '<td align="right">')
 
     from datetime import datetime
 
@@ -97,13 +98,14 @@ def predict():
         #prices = ffn.get(f'{listisins[0]},{listisins[1]},{listisins[2]}', provider=ffn.data.csv, path=filename)
         prices = ffn.get(f'{file_isin_header}', provider=ffn.data.csv, path=filename)
         print(f'{prices.shape}')
+        prices = prices.resample('D').interpolate()[::7]
         stats = prices.calc_stats()
         print('stats computed')
         stats.to_csv(sep=',',path=f'analysis/stats_{str_date_time}.csv')
-        p = prices.to_html()
+        p = prices.to_html().replace('<td>', '<td align="right">')
         print('prices to html')
         analysis = pd.read_csv(f'analysis/stats_{str_date_time}.csv', delimiter=',', error_bad_lines=False)
-        a = analysis.to_html(bold_rows=False, justify='center', col_space=100)
+        a = analysis.to_html(bold_rows=False, index=False, justify='center', col_space=100).replace('<td>', '<td align="right">')
         gl = np.round(investment + (ptf.RETURN.sum()),2)
         print(f'gl = {gl}')
         # max draw down
@@ -159,7 +161,7 @@ def predict():
         for i in range(1,last_row):
             l = len(listisins)
             for j in range(0,l):
-                returns_1.iloc[i,l+j] = returns_1.iloc[i-1,l+j] * returns_1.iloc[i,j]
+                returns_1.iloc[i,l+j] = Decimal(returns_1.iloc[i-1,l+j]) * Decimal(returns_1.iloc[i,j])
 
 
         #print(f'returns_1 shape = {returns_1.shape}')
@@ -184,28 +186,48 @@ def predict():
         
         #resample on weekly basis
         ptf_prices = ptf_prices.resample('D').interpolate()[::7]
-        print(f'weekly prices resample {ptf_prices.shape}')
+        #ptf_prices = ptf_prices.resample('W-WED').interpolate()[::1]
+        #print(f'weekly prices resample {ptf_prices.shape}')
+        #print(ptf_prices.head(9))
         
         ptf_stats = ptf_prices.calc_stats()
         ptf_stats.to_csv(sep=',',path=f'analysis/sim_{str_date_time}.csv')
         analysis = pd.read_csv(f'analysis/sim_{str_date_time}.csv', delimiter=',', error_bad_lines=False)
-        print(f'{analysis.columns.tolist()}')
-        a_sim = analysis.to_html()
+        #print(f'{analysis.columns.tolist()}')
+        a_sim = analysis.to_html().replace('<td>', '<td align="right">')
         
         # force the columns we wants for the table
-        cols_table = ['YTD','MTD','1m','3m','6m','1Y','Total Return']
-        cols_greek = ['Daily Sharpe','Daily Vol (ann.)','Max Drawdown']
+        cols_table = ['Total Return','YTD','MTD','1m','3m','6m','1Y','Since Incep. (ann.)']
+        cols_greek = ['Max Drawdown','Best Year','Worst Year','Avg. Drawdown Days']
         pd_cols = pd.DataFrame(cols_table + cols_greek, columns=['labels'])
-        print(analysis.head(5))
+        #print(analysis.head(5))
         pd_cols=pd_cols.merge(analysis, left_on='labels', right_on='Stat', how='left').fillna('-')
-        a_sim_summary = pd_cols[['labels','p']].to_html(index=False, col_space=100, justify='center')
+        ptf_performance = np.round(((ptf_prices.loc[ptf_prices.index.max(),'p'] / ptf_prices.loc[ptf_prices.index.min(),'p']) -1)*100 ,2)
+        #print(ptf_performance)
+        a_sim_summary = pd_cols[['labels','p']].to_html(index=False, col_space=100, justify='center').replace('<td>', '<td align="right">')
+
+        # force the columns we wants for the table
+        #cols_table = ['Total Return','YTD','MTD','1m','3m','6m','1Y','Since Incep. (ann.)']
+        #cols_greek = ['Max Drawdown','Best Year','Worst Year','Avg. Drawdown Days']
+        pd_cols = pd.DataFrame(cols_table + cols_greek, columns=['labels'])
+        stats = prices.calc_stats()
+
+        stats.to_csv(sep=',',path=f'analysis/ptf_sum_{str_date_time}.csv')
+        stats_sum = pd.read_csv(f'analysis/ptf_sum_{str_date_time}.csv', delimiter=',', error_bad_lines=False)
+        print(stats_sum.query('Stat == "Best Year"'))
+        pd_cols=pd_cols.merge(stats_sum, left_on='labels', right_on='Stat', how='left').fillna('-')
+        a_ptf_summary = pd_cols.iloc[:,2:].to_html(index=False, col_space=100, justify='center').replace('<td>', '<td align="right">')
+
+
+
+
 
         # plot perf_port
         ptf_prices.rebase().plot(figsize=(12,5))
         plt.savefig(f'static/perfor_ptf_{str_date_time}.png', bbox_inches='tight')
         
 
-        html = f'<div class="naija-flag"><h3>Portfolio simulation {interval}</h3></div><br>The {investment} Euro invested returns {gl} Euro. This means a {np.round(((gl/investment)-1)*100,2)}% performance.<hr>{table}<hr>{a_sim_summary}<hr><img src="/static/perfor_ptf_{str_date_time}.png"><hr>{a_sim}<br><div><table><tr /><td /><h2>Portfolio details</h2><img src="/static/heatmap_{str_date_time}.png"><td /><img src="/static/rethisto_{str_date_time}.png"></table></div><div><table valign="top"><tr /><td />{a}<td /><img src="/static/perfor_{str_date_time}.png"></table></div></div>'
+        html = f'<div class="naija-flag"><h3>Portfolio simulation {interval}</h3></div><br>The {investment} Euro invested returns {np.round(investment*(1+(ptf_performance/100)),0)} Euro. This means a {ptf_performance} performance.<hr><div class="naija-flag"><div class="portfolio-seeting">{a_sim_summary}</div><div class="ptf-summary">{a_ptf_summary}</div></div><hr><img src="/static/perfor_ptf_{str_date_time}.png"><hr>{a_sim}<br><div><table><tr /><td /><h2>Portfolio details</h2><img src="/static/heatmap_{str_date_time}.png"><td /><img src="/static/rethisto_{str_date_time}.png"></table></div><div><table valign="top"><tr /><td />{a}<td /><img src="/static/perfor_{str_date_time}.png"></table></div></div>'
         return render_template('home.html', prediction_text = html)
 
     except OSError as err:
