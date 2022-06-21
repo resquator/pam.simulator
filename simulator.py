@@ -198,7 +198,7 @@ def predict():
         
         # force the columns we wants for the table
         cols_table = ['Total Return','YTD','MTD','1m','3m','6m','1Y','Since Incep. (ann.)']
-        cols_greek = ['Max Drawdown','Best Year','Worst Year','Avg. Drawdown Days']
+        cols_greek = ['Monthly Sharpe','Max Drawdown','Best Year','Worst Year','Avg. Drawdown Days']
         pd_cols = pd.DataFrame(cols_table + cols_greek, columns=['labels'])
         #print(analysis.head(5))
         pd_cols=pd_cols.merge(analysis, left_on='labels', right_on='Stat', how='left').fillna('-')
